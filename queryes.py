@@ -2,6 +2,21 @@ import django
 import os
 import datetime
 from django.db.models import Count
+from django.db.models import Avg, Q
+from django.db.models import Max, Min
+from django.db.models import StdDev, Variance
+from django.db.models import Sum
+from django.db import connection
+from django.db import models
+from django.db.models import F
+from django.db.models import Q
+from datetime import date
+from django.db.models import Case, When, BooleanField, CharField
+from django.db.models import Subquery
+
+
+
+
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'project.settings')
 django.setup()
@@ -175,7 +190,283 @@ if __name__ == "__main__":
 # entry = Blog.objects.annotate(number_of_entries=Count('entries')).values('name', 'number_of_entries')
 # print(entry)
 
+    # blogs = Blog.objects.alias(number_of_entries=Count('entries')).filter(number_of_entries__gt=4)
+    # print(blogs)
 
 
+
+# # Вычислить среднюю оценку только для уникальных значений
+# average_rating = Entry.objects.aggregate(
+#     average_rating1=Avg('rating', distinct=True)
+# )
+# print(average_rating)  # {'average_rating1': 3.6999999999999993}
+#
+# # Вычислить среднюю оценку с заданным значением по умолчанию(допустим
+# # значение у поля None), если агрегация не возвращает результат
+# average_rating_with_default = Entry.objects.aggregate(
+#     average_rating2=Avg('rating', default=5.0)
+# )
+# print(average_rating_with_default) # {'average_rating2': 3.46}
+#
+# # Вычислить среднюю оценку только для статей, опубликованных после 2023 года
+# average_rating = Entry.objects.aggregate(
+#     average_rating3=Avg('rating', filter=Q(pub_date__year__gt=2023)))
+# print(average_rating) # {'average_rating3': 2.925}
+
+# Вычислить число уникальных авторов статей(которые написали хотя бы одну статью)
+# count_authors = Entry.objects.aggregate(
+#         count_authors=Count('author', distinct=True)
+#     )
+# print(count_authors)  # {'count_authors': 12}
+#
+# # Получить статьи с количеством тегов
+# entries_with_tags_count = Entry.objects.annotate(
+#     tag_count=Count('tags')).values('id', 'tag_count')
+# print(entries_with_tags_count)
+#
+# # Вычислить максимальную и минимальную оценку
+# calc_rating = Entry.objects.aggregate(
+#     max_rating=Max('rating'), min_rating=Min('rating')
+# )
+# print(calc_rating)  # {'max_rating': 5.0, 'min_rating': 0.0}
+
+# # Вычислить среднее квадратическое отклонение и дисперсию оценки
+# calc_rating = Entry.objects.aggregate(
+#     std_rating=StdDev('rating'), var_rating=Variance('rating')
+# )
+# print(calc_rating)  # {'std_rating': 1.6577092628081682, 'var_rating': 2.748}
+
+# # Вычислить общее число комментариев в БД
+# calc_rating = Entry.objects.aggregate(
+#     sum_comments=Sum('number_of_comments')
+# )
+# print(calc_rating)  # {'sum_comments': 134}
+#
+
+# filtered_data = Blog.objects.filter(id__gte=2).order_by("id")
+# print(filtered_data)   # упорядочивание по возрастанию по полю id
+# print(filtered_data.reverse())  # поменяли направление
+# # Если порядок не указан или в модели, или через order_by, то reverse работать не будет
+# filtered_data = Blog.objects.filter(id__gte=2)
+# print(filtered_data)
+# print(filtered_data.reverse())
+
+# print(Entry.objects.order_by('author', 'pub_date').distinct('author', 'pub_date'))  # Не работает в SQLite
+# # distinct('author', 'pub_date') - оставляет уникальные строки по колонкам author, pub_date
+# # distinct() - старается оставить уникальные данные по всем колонкам
+# # Аналогично с поиском по полю можно обращаться к связанным данным distinct('author__name', 'pub_date')
+
+# # Обычный запрос
+# print(Blog.objects.filter(name__startswith='Фитнес'))
+# # <QuerySet [<Blog: Фитнес и здоровый образ жизни>]>
+# # Запрос раскрывающий значения
+# print(Blog.objects.filter(name__startswith='Фитнес').values())
+# # Вывод всех строк с их раскрытием
+# print(Blog.objects.values())
+# # Вывод всех строк с сохранением в запросе только необходимых столбцов
+# print(Blog.objects.values('id', 'name'))  # Обратите внимание, что данные отсортированы по полю name
+
+# # Вывод всех строк с их раскрытием
+# print(Blog.objects.values_list())
+# # Вывод всех строк с сохранением в запросе только необходимых столбцов
+# print(Blog.objects.values_list('id', 'name'))  # Обратите внимание, что данные отсортированы по полю name
+
+# blog_a_entries = Entry.objects.filter(blog__name='Путешествия по миру')
+# blog_b_entries = Entry.objects.filter(blog__name='Кулинарные искушения')
+# blog_c_entries = Entry.objects.filter(blog__name='Фитнес и здоровый образ жизни')
+# result_qs = blog_a_entries.union(blog_b_entries, blog_c_entries)
+# print(result_qs)
+#
+# print(Entry.objects.filter(blog__name__in=['Путешествия по миру', 'Кулинарные искушения', 'Фитнес и здоровый образ жизни']))
+
+# """
+# Допустим, у нас есть три конкретных блога. Мы хотим получить авторов, которые написали статью во всех из перечисленных блогах.
+# """
+#
+# blog_a_entries = Entry.objects.filter(blog__name='Путешествия по миру').values('author')
+# blog_b_entries = Entry.objects.filter(blog__name='Кулинарные искушения').values('author')
+# blog_c_entries = Entry.objects.filter(blog__name='Фитнес и здоровый образ жизни').values('author')
+# result_qs = blog_a_entries.intersection(blog_b_entries, blog_c_entries)
+# print(result_qs)
+
+
+# blog_a_entries = Entry.objects.filter(blog__name='Путешествия по миру').values('author')
+# blog_b_entries = Entry.objects.filter(blog__name='Кулинарные искушения').values('author')
+# blog_c_entries = Entry.objects.filter(blog__name='Фитнес и здоровый образ жизни').values('author')
+# result_qs = Entry.objects.values('author').difference(blog_a_entries, blog_b_entries, blog_c_entries)
+# print(result_qs)
+# # <QuerySet [{'author': 5}, {'author': 7}, {'author': 8}]>
+#
+# # # А допустим так (один из возможных запросов) можно узнать кто вообще не написал ни одной статьи в любой блог,
+# # # так как нет записей у этого автора в таблице Entry в поле author
+# # print(Author.objects.filter(entry__author=None))
+
+# print("Число запросов = ", len(connection.queries), " Запросы = ", connection.queries)
+# """
+# Число запросов =  0  Запросы =  []
+# """
+# entry = Entry.objects.get(id=5)
+# print("Число запросов = ", len(connection.queries), " Запросы = ", connection.queries)
+# """
+# Число запросов =  1  Запросы =  [...]
+# """
+# blog = entry.blog
+# print("Число запросов = ", len(connection.queries), " Запросы = ", connection.queries)
+# """
+# Число запросов =  2  Запросы =  [...,...]
+# """
+# print('Результат запроса = ', blog)
+# """
+# Результат запроса =  Путешествия по миру
+# """
+
+# print("Число запросов = ", len(connection.queries), " Запросы = ", connection.queries)
+# """
+# Число запросов =  0  Запросы =  []
+# """
+# entry = Entry.objects.select_related('blog').get(id=5)
+# print("Число запросов = ", len(connection.queries), " Запросы = ", connection.queries)
+# """
+# Число запросов =  1  Запросы =  [...]
+# """
+# blog = entry.blog
+# print("Число запросов = ", len(connection.queries), " Запросы = ", connection.queries)
+# """
+# Число запросов =  1  Запросы =  [...,...]
+# """
+# print('Результат запроса = ', blog)
+# """
+# Результат запроса =  Путешествия по миру """
+
+# class ModelA(models.Model):
+#     # Поля модели
+#
+# class ModelB(models.Model):
+#     model_a = models.ForeignKey(ModelA, on_delete=models.CASCADE)
+#     # Поля модели
+#
+# class ModelC(models.Model):
+#     model_b = models.ForeignKey(ModelB, on_delete=models.CASCADE)
+#     # Поля модели
+#
+# class ModelD(models.Model):
+#     model_c = models.ForeignKey(ModelC, on_delete=models.CASCADE)
+#     # Поля модели
+#
+# result = ModelA.objects.select_related('modelb', 'modelb__modelc', 'modelb__modelc__modeld').get(id=1)
+
+# class Topping(models.Model):
+#     name = models.CharField(max_length=30)
+#
+#
+# class Pizza(models.Model):
+#     name = models.CharField(max_length=50)
+#     toppings = models.ManyToManyField(Topping)
+#
+#     def __str__(self):
+#         return "%s (%s)" % (
+#             self.name,
+#             ", ".join(topping.name for topping in self.toppings.all()),
+#         )
+#
+# >> > Pizza.objects.all()
+# ["Hawaiian (ham, pineapple)", "Seafood (prawns, smoked salmon)"...
+#
+# Pizza.objects.prefetch_related('toppings')
+
+# print("Число запросов = ", len(connection.queries), " Запросы = ", connection.queries)
+# """
+# Число запросов =  0  Запросы =  []
+# """
+# entry = Entry.objects.all()
+# print("Число запросов = ", len(connection.queries), " Запросы = ", connection.queries)
+# """
+# Число запросов =  0  Запросы =  [], ввиду ленивости QuerySet
+# """
+# for row in entry:
+#     tags = [tag.name for tag in row.tags.all()]
+#     print("Число запросов = ", len(connection.queries), " Запросы = ", connection.queries)
+#     print('Результат запроса = ', tags)
+# """
+# Число запросов =  26 Запросы = [...]
+# """
+
+# print("Число запросов = ", len(connection.queries), " Запросы = ", connection.queries)
+# """
+# Число запросов =  0  Запросы =  []
+# """
+# entry = Entry.objects.prefetch_related("tags")
+# print("Число запросов = ", len(connection.queries), " Запросы = ", connection.queries)
+# """
+# Число запросов =  0  Запросы =  [], ввиду ленивости QuerySet
+# """
+# for row in entry:
+#     tags = [tag.name for tag in row.tags.all()]
+#     print("Число запросов = ", len(connection.queries), " Запросы = ", connection.queries)
+#     print('Результат запроса = ', tags)
+# """
+# Число запросов =  2 Запросы = [...]
+# """
+
+
+#print(Entry.objects.filter(number_of_comments__gt=F('number_of_pingbacks')).values('id',
+                                                                                   # 'number_of_comments',
+                                                                                   # 'number_of_pingbacks'))
+
+
+# print(Entry.objects.annotate(sum_number=F('number_of_pingbacks') + F('number_of_comments')).values('id',
+#                                                                                                    'number_of_comments',
+#                                                                                                    'number_of_pingbacks',
+#                                                                                                    'sum_number'))
+
+# print(Entry.objects.alias(sum_number=F('number_of_pingbacks') + F('number_of_comments')).
+#       annotate(val1=F('sum_number') / F('number_of_comments')).values('id',   'number_of_comments',
+#                                                                       'number_of_pingbacks', 'val1'))
+
+    # entries = Entry.objects.filter(
+    #     Q(headline__icontains='тайны') | Q(body_text__icontains='город'))
+    # print(entries)
+    #
+    # # Получение записей блога "Путешествия по миру" с датами публикаций между 1 мая 2022 и 1 мая 2023
+    # entries = Entry.objects.filter(
+    #     Q(blog__name='Путешествия по миру') & Q(pub_date__date__range=(date(2022, 5, 1), date(2023, 5, 1))))
+    # print(entries)
+    #
+    # # Получить статьи, у которых либо имеется оценка больше 4, либо число комментариев меньше 10 (используя XOR)
+    # entries = Entry.objects.filter(Q(rating__gt=4) ^ Q(number_of_comments__lt=10))
+    # print(entries)
+
+# # Получение всех записей с полем is_popular, которое равно True, если значение поля rating больше равно 4, иначе False
+# entries = Entry.objects.annotate(
+#     is_popular=Case(
+#         When(rating__gte=4, then=True),
+#         default=False,
+#         output_field=BooleanField()
+#     )
+# ).values('id', 'rating', 'is_popular')
+# print(entries)
+# """
+# <QuerySet [
+# {'id': 1, 'rating': 0.0, 'is_popular': False},
+# {'id': 2, 'rating': 5.0, 'is_popular': True},
+# {'id': 3, 'rating': 4.7, 'is_popular': True},
+# {'id': 4, 'rating': 3.3, 'is_popular': False},
+# {'id': 5, 'rating': 3.4, 'is_popular': False},
+# ...
+# ]>
+# """
+#
+# from django.db.models import Count, Value
+# # Создание описательной метки для числа тегов в статье
+# entries = Entry.objects.annotate(
+#     count_tags=Count("tags"),
+#     tag_label=Case(
+#         When(count_tags__gte=3, then=Value('Много')),
+#         When(count_tags=2, then=Value('Средне')),
+#         default=Value('Мало'),
+#         output_field=CharField()
+#     )
+# ).values('id', 'count_tags', 'tag_label')
+# print(entries)
 
 
