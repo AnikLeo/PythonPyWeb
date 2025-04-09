@@ -21,11 +21,11 @@ class TrainView(View):
         self.answer5 =f"{(author_agree/total_author) * 100:.2f}"   # TODO Какой процент авторов согласился с правилами при регистрации?
 
 
-        self.answer6 = Author.objects.filter(stage = )   # TODO Какие авторы имеют стаж от 1 до 5 лет?
-        self.answer7 = None  # TODO Какой автор имеет наибольший возраст?
-        self.answer8 = None  # TODO Сколько авторов указали свой номер телефона?
-        self.answer9 = None  # TODO Какие авторы имеют возраст младше 25 лет?
-        self.answer10 = None  # TODO Сколько статей написано каждым автором?
+        self.answer6 = AuthorProfile.objects.filter(stage__gte = 1, stage__lte = 5)   #????? TODO Какие авторы имеют стаж от 1 до 5 лет?
+        self.answer7 = Author.objects.order_by('-age').first  # TODO Какой автор имеет наибольший возраст?
+        self.answer8 = Author.objects.exclude(phone_number = '').count()  # TODO Сколько авторов указали свой номер телефона?
+        self.answer9 = Author.objects.filter(age__lt = 25 )  # TODO Какие авторы имеют возраст младше 25 лет?
+        self.answer10 = Author.objects.annotate(number_of_entries = Count('entries')).values('username', 'number_of_entries')  # TODO Сколько статей написано каждым автором?
 
 
 
