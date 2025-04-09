@@ -13,6 +13,7 @@ from django.db.models import Q
 from datetime import date
 from django.db.models import Case, When, BooleanField, CharField
 from django.db.models import Subquery
+from django.db.models import F, Window, Avg, Max, Min
 
 
 
@@ -469,4 +470,62 @@ if __name__ == "__main__":
 # ).values('id', 'count_tags', 'tag_label')
 # print(entries)
 
+# # Получаем список ID авторов без биографии
+# subquery = AuthorProfile.objects.filter(bio__isnull=True).values('author_id')
+#
+# # Фильтруем записи блога по авторам
+# query = Entry.objects.filter(author__in=Subquery(subquery))
+# print(query)
+#
+# # Аналогично можно подключиться так, так как есть непрямая связь между Author и AuthorProfile через первичный ключ
+# print(Entry.objects.filter(author__authorprofile__bio__isnull=True))
 
+
+# # Составляем SQL-запрос
+# sql = """
+# SELECT id, headline
+# FROM db_train_alternative_entry
+# WHERE headline LIKE '%%тайны%%' OR body_text LIKE '%%город%%'
+# """
+#
+# # Выполняем запрос
+# with connection.cursor() as cursor:
+#     cursor.execute(sql)
+#     results = cursor.fetchall()
+#
+# # Выводим результаты
+# for result in results:
+#     print(result)
+#
+#
+# # Выполняем сырой SQL-запрос
+# results = Entry.objects.raw(
+#     """
+#     SELECT id, headline
+#     FROM db_train_alternative_entry
+#     WHERE headline LIKE '%%тайны%%' OR body_text LIKE '%%город%%'
+#     """
+# )
+#
+# # Выводим результаты
+# for result in results:
+#     print(result.id, result.headline)
+#
+
+# Получаем queryset статей блога с аннотациями, используя оконные функции
+# queryset = Entry.objects.annotate(
+#     avg_comments=Window(
+#         expression=Avg('number_of_comments'),
+#         partition_by=F('blog'),
+#     ),
+#     max_comments=Window(
+#         expression=Max('number_of_comments'),
+#         partition_by=F('blog'),
+#     ),
+#     min_comments=Window(
+#         expression=Min('number_of_comments'),
+#         partition_by=F('blog'),
+#     ),
+#
+# ).values('id', 'headline', 'avg_comments', 'max_comments', 'min_comments')
+# print(queryset)
