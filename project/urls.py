@@ -33,4 +33,5 @@ if settings.DEBUG:
     # продакшн (Debug=False) нужно использовать другие сервисы (не Django) для обработки медиафайлов.
     urlpatterns += [
         path("__debug__/", include("debug_toolbar.urls")),
+        path('api/', include('apps.api.urls')),
     ]
