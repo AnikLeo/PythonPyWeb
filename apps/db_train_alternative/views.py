@@ -1,5 +1,3 @@
-from django.shortcuts import render
-
 from django.http import JsonResponse
 from django.views import View
 from .models import Author
@@ -8,6 +6,11 @@ import json
 
 
 class AuthorREST(View):
+    @csrf_exempt
+    def dispatch(self, *args, **kwargs):
+        return super().dispatch(*args, **kwargs)
+
+
     def get(self, request, id=None):
 
         if id is None:  # Проверяем, что требуется вернуть всех пользователей
@@ -37,3 +40,60 @@ class AuthorREST(View):
         # После того как данные для ответа созданы - возвращаем Json объект с данными
         return JsonResponse(data, safe=False, json_dumps_params={"ensure_ascii": False,
                                                                  "indent": 4})
+
+    def post(self, request):
+        try:
+            data = json.loads(request.body)
+
+            author = Author(name=data['name'], email=data['email'])
+            author.clean_fields()  # Запуск валидаций
+            author.save()  # Сохранение в БД
+
+            response_data = {
+                'message': f'Автор успешно создан',
+                'id': author.id,
+                'name': author.name,
+                'email': author.email
+            }
+            return JsonResponse(response_data, status=201,
+                                json_dumps_params={"ensure_ascii": False,
+                                                   "indent": 4}
+                                )
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=400,
+                                json_dumps_params={"ensure_ascii": False,
+                                                   "indent": 4}
+                                )
+
+    def put(self, request, id):
+        try:
+            author = Author.objects.get(id=id)
+            data = json.loads(request.body)
+            # Обновляем поля
+            author.name = data['name']
+            author.email = data['email']
+            author.clean_fields()  # Запуск валидаций
+            author.save()  # Сохранение в БД
+
+            response_data = {
+                'message': f'Данные автора успешно изменены',
+                'id': author.id,
+                'name': author.name,
+                'email': author.email
+            }
+            return JsonResponse(response_data,
+                                json_dumps_params={"ensure_ascii": False,
+                                                   "indent": 4},
+                                )
+        except Author.DoesNotExist:  # Если получили ошибку
+            return JsonResponse({'error': 'Автор не найден'},
+                                status=404,
+                                json_dumps_params={"ensure_ascii": False,
+                                                   "indent": 4},
+                                )
+        except Exception as e:  # При любой другой ошибке
+            return JsonResponse({'error': str(e)},
+                                status=400,
+                                json_dumps_params={"ensure_ascii": False,
+                                                   "indent": 4},
+                                )
