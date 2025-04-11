@@ -1,17 +1,20 @@
-from django.shortcuts import render
-
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from django.views.decorators.csrf import csrf_exempt  # Чтобы post, put, patch, delete не требовали csrf токена (небезопасно)
 from apps.db_train_alternative.models import Author
 from .serializers import AuthorSerializer
-
+from .serializers import AuthorModelSerializer
 
 class AuthorAPIView(APIView):
-    @csrf_exempt
-    def dispatch(self, *args, **kwargs):
-        return super().dispatch(*args, **kwargs)
+   @csrf_exempt
+   def dispatch(self, *args, **kwargs):
+       return super().dispatch(*args, **kwargs)
+
+# class AuthorModelSerializer(serializers.ModelSerializer):
+#     class Meta:
+#         model = Author
+#         fields = ['id', 'name', 'email']  # или можно прописать '__all__' если нужны все поля
 
     def get(self, request, pk=None):
         if pk is not None:
@@ -64,4 +67,5 @@ class AuthorAPIView(APIView):
             return Response({"message": "Автор не найден"}, status=status.HTTP_404_NOT_FOUND)
 
         author.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
         return Response(status=status.HTTP_204_NO_CONTENT)
